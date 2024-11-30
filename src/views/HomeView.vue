@@ -4,13 +4,15 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  onAuthStateChanged,
+  // onAuthStateChanged,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   signInWithPopup,
 } from 'firebase/auth'
 import { auth } from '@/util/firebase'
 
 const provider = new GoogleAuthProvider()
+const fbProvider = new FacebookAuthProvider()
 
 // Interfaces
 interface FormData {
@@ -86,7 +88,7 @@ const validateForm = (): boolean => {
       formData.value[field as keyof FormData],
     )
     if (error) {
-      errors[field as keyof FormErrors] = error
+      errors.value[field as keyof FormErrors] = error
       isValid = false
     }
   })
@@ -95,14 +97,14 @@ const validateForm = (): boolean => {
 }
 
 const clearError = (field: keyof FormErrors): void => {
-  errors[field as keyof FormErrors] = ''
+  errors.value[field as keyof FormErrors] = ''
 }
 
 const resetForm = (): void => {
   formData.value.email = ''
   formData.value.password = ''
   Object.keys(errors).forEach(field => {
-    errors[field as keyof FormErrors] = ''
+    errors.value[field as keyof FormErrors] = ''
   })
 }
 
@@ -118,6 +120,7 @@ const handleSubmit = async (): Promise<void> => {
 const handleGoogleAuth = async (): Promise<void> => {
   try {
     const result = await signInWithPopup(auth, provider)
+    console.log(result)
     // This gives you a Google Access Token. You can use it to access the Google API.
     /*     const credential = GoogleAuthProvider.credentialFromResult(result)
     const token = credential.accessToken */
@@ -135,7 +138,26 @@ const handleGoogleAuth = async (): Promise<void> => {
   }
 }
 
-const submitForm = async (data: FormData, isLogin: boolean): Promise<any> => {
+const handleFacebookAuth = async (): Promise<void> => {
+  try {
+    const result = await signInWithPopup(auth, fbProvider)
+    console.log('user', result.user)
+    const credential = FacebookAuthProvider.credentialFromResult(result)
+    const accessToken = credential?.accessToken
+    console.log('accessToken', accessToken)
+  } catch (error) {
+    console.error('Facebook auth error:', error)
+    // Handle Errors here.
+    // const errorCode = error.code
+    // const errorMessage = error.message
+    // The email of the user's account used.
+    // const email = error.customData.email
+    // The AuthCredential type that was used.
+    // const credential = FacebookAuthProvider.credentialFromError(error)
+  }
+}
+
+const submitForm = async (data: FormData, isLogin: boolean): Promise<void> => {
   try {
     if (isLogin) {
       const userCredential = await signInWithEmailAndPassword(
@@ -153,7 +175,8 @@ const submitForm = async (data: FormData, isLogin: boolean): Promise<any> => {
       data.password,
     )
     console.log('sign up', userCredential)
-    sendEmailVerification(auth.currentUser)
+    const currentUser = auth.currentUser
+    if (currentUser) sendEmailVerification(currentUser)
   } catch (err) {
     console.error(err)
   }
@@ -214,6 +237,10 @@ const toggleForm = (): void => {
         <button type="button" class="google-btn" @click="handleGoogleAuth">
           <span class="google-icon">G</span>
           Continue with Google
+        </button>
+        <button type="button" class="google-btn" @click="handleFacebookAuth">
+          <span class="google-icon">F</span>
+          Continue with Facebook
         </button>
 
         <p class="toggle-form">
